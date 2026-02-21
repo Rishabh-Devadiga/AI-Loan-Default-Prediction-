@@ -10,12 +10,37 @@ def _artifact_path(filename: str) -> Path:
     return Path(resolve_artifact_dir()) / filename
 
 
+def _is_valid_artifact(path: Path) -> bool:
+    return path.exists() and path.is_file() and path.stat().st_size > 0
+
+
+def _ensure_artifacts() -> None:
+    model_path = _artifact_path("best_model.pkl")
+    preprocessor_path = _artifact_path("preprocessor.pkl")
+    if _is_valid_artifact(model_path) and _is_valid_artifact(preprocessor_path):
+        return
+
+    from src.models.train import train
+
+    train()
+
+    if not (_is_valid_artifact(model_path) and _is_valid_artifact(preprocessor_path)):
+        raise FileNotFoundError(
+            f"Required artifacts not found after training. "
+            f"Checked: {model_path} and {preprocessor_path}"
+        )
+
+
 def load_model(model_path: str | Path | None = None):
+    if model_path is None:
+        _ensure_artifacts()
     path = Path(model_path) if model_path else _artifact_path("best_model.pkl")
     return joblib.load(path)
 
 
 def load_preprocessor(preprocessor_path: str | Path | None = None):
+    if preprocessor_path is None:
+        _ensure_artifacts()
     path = Path(preprocessor_path) if preprocessor_path else _artifact_path("preprocessor.pkl")
     return joblib.load(path)
 

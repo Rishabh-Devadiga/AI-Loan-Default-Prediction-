@@ -11,13 +11,20 @@ RAW_DATA_PATH = PROJECT_ROOT / "data" / "raw" / "Loan_Default.csv"
 PROCESSED_DATA_PATH = PROJECT_ROOT / "data" / "processed" / "processed_data.csv"
 
 ARTIFACT_CANDIDATES = [
-    WORKSPACE_ROOT / "models",
     PROJECT_ROOT / "models",
+    WORKSPACE_ROOT / "models",
 ]
 
 
 def resolve_artifact_dir() -> Path:
     for path in ARTIFACT_CANDIDATES:
-        if (path / "best_model.pkl").exists() and (path / "preprocessor.pkl").exists():
+        model_path = path / "best_model.pkl"
+        preprocessor_path = path / "preprocessor.pkl"
+        if (
+            model_path.exists()
+            and preprocessor_path.exists()
+            and model_path.stat().st_size > 0
+            and preprocessor_path.stat().st_size > 0
+        ):
             return path
-    return ARTIFACT_CANDIDATES[0]
+    return PROJECT_ROOT / "models"
