@@ -1,6 +1,9 @@
 # Loan Default Prediction System
 
-This project is an end-to-end Loan Default Prediction System that utilizes machine learning to predict the likelihood of loan defaults based on borrower data. The system includes data processing, model training, and a user-friendly multi-page Streamlit application that provides business insights.
+This project is an end-to-end Loan Default Prediction System that utilizes machine learning to predict the likelihood of loan defaults based on borrower data. The system includes data processing, model training, and a user-friendly multi-page Streamlit application that provides business insights. 
+
+# Deployed App Link:
+https://ai-loan-default-prediction.streamlit.app/
 
 ## Project Structure
 
@@ -65,6 +68,7 @@ loan-default-prediction
 
 ## Dataset
 
+The dataset was taken from Kaggle.
 The raw dataset `Loan_Default.csv` is located in the `data/raw` directory. After preprocessing, the processed dataset can be found in `data/processed/processed_data.csv`.
 
 ## Contributing
