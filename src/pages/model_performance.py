@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.config import resolve_artifact_dir
+from src.models.train import train
 
 
 DISPLAY_NAMES = {
@@ -40,10 +41,29 @@ def app():
 
     metrics_path = resolve_artifact_dir() / "model_metrics_summary.csv"
     if not metrics_path.exists():
+        with st.spinner("Model metrics not found. Training models to generate performance metrics..."):
+            try:
+                train()
+            except Exception as exc:
+                st.error(f"Metrics file not found: {metrics_path}")
+                st.error(f"Unable to generate metrics automatically: {exc}")
+                return
+
+    if not metrics_path.exists():
         st.error(f"Metrics file not found: {metrics_path}")
         return
 
-    metrics = pd.read_csv(metrics_path, index_col=0)
+    try:
+        metrics = pd.read_csv(metrics_path, index_col=0)
+    except Exception as exc:
+        st.error(f"Failed to read metrics file: {metrics_path}")
+        st.error(str(exc))
+        return
+
+    if metrics.empty:
+        st.error(f"Metrics file is empty: {metrics_path}")
+        return
+
     metrics = metrics.rename(index=DISPLAY_NAMES).sort_index()
 
     tabs = st.tabs(list(metrics.index))
