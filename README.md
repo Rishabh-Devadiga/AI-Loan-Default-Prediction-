@@ -66,17 +66,14 @@ Steps performed:
 
 Multiple models were trained and compared:
 
-AI-Loan-Default-Prediction
-│
-├── loan_app.py # Streamlit web application
-├── model_train.ipynb # Model training and evaluation
-├── EDA_loan_dataset.ipynb # Exploratory data analysis
-├── xgboost_model.pkl # Trained ML model
-├── scaler.pkl # Feature scaler
-├── model_features.pkl # Feature order for prediction
-├── LoanDefault.csv # Dataset
-└── README.md # Project documentation
+| Model | Purpose |
+|------|------|
+| Logistic Regression | Baseline model |
+| Random Forest | Tree-based ensemble |
+| XGBoost | Gradient boosting model |
+
 ---
+
 
 ### 4. Model Evaluation
 
