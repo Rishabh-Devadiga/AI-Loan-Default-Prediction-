@@ -122,22 +122,6 @@ Users can enter borrower information and receive:
 
 ---
 
-## Project Structure
-
-AI-Loan-Default-Prediction
-│
-├── loan_app.py # Streamlit web application
-├── model_train.ipynb # Model training and evaluation
-├── EDA_loan_dataset.ipynb # Exploratory data analysis
-├── xgboost_model.pkl # Trained ML model
-├── scaler.pkl # Feature scaler
-├── model_features.pkl # Feature order for prediction
-├── LoanDefault.csv # Dataset
-└── README.md # Project documentation
-
-
----
-
 ## Running the Application
 
 ### Install dependencies
