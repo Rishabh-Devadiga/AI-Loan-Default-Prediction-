@@ -34,7 +34,11 @@ st.markdown(
         padding-top: 0.25rem;
     }
 
-    .section-card {
+    .section-card-marker {
+        display: none;
+    }
+
+    div[data-testid="stVerticalBlock"] > div:has(> .section-card-marker) {
         background: linear-gradient(145deg, rgba(17,24,39,0.95), rgba(15,23,42,0.95));
         border: 1px solid rgba(148, 163, 184, 0.15);
         border-radius: 16px;
@@ -148,20 +152,18 @@ def apply_example():
 left, right = st.columns([1.1, 0.9], gap="large")
 
 with left:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-card-marker"></div>', unsafe_allow_html=True)
     st.markdown("### 📊 Financial Information")
     Credit_Score = st.slider(
         "Credit Score",
         min_value=300,
         max_value=850,
-        value=st.session_state.Credit_Score,
         help="Typical ranges: 300-579 (poor), 580-669 (fair), 670-739 (good), 740+ (excellent).",
         key="Credit_Score",
     )
     income = st.number_input(
         "Annual Income",
         min_value=0.0,
-        value=st.session_state.income,
         step=1000.0,
         help="Enter the borrower's gross annual income.",
         key="income",
@@ -172,7 +174,6 @@ with left:
     loan_amount = st.number_input(
         "Loan Amount",
         min_value=0.0,
-        value=st.session_state.loan_amount,
         step=1000.0,
         help="Total principal requested.",
         key="loan_amount",
@@ -180,7 +181,6 @@ with left:
     term = st.selectbox(
         "Term (months)",
         options=[120, 180, 240, 360],
-        index=[120, 180, 240, 360].index(st.session_state.term),
         help="Choose the repayment duration in months.",
         key="term",
     )
@@ -188,7 +188,6 @@ with left:
         "Debt-to-Income Ratio (DTI %)",
         min_value=0.0,
         max_value=100.0,
-        value=st.session_state.dtir1,
         help="Monthly debt payments divided by monthly income.",
         key="dtir1",
     )
@@ -214,14 +213,13 @@ with left:
         options=list(loan_limit_map.keys()),
         key="loan_limit_label",
     )
-    st.markdown("</div>", unsafe_allow_html=True)
 
     st.write("")
     if st.button("Try Example", use_container_width=True):
         apply_example()
 
 with right:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-card-marker"></div>', unsafe_allow_html=True)
     st.markdown("### 🧠 Prediction Results")
     st.write("")
     predict_clicked = st.button("Predict Risk", type="primary", use_container_width=True)
@@ -294,5 +292,3 @@ with right:
                 st.error("High Risk Borrower")
     else:
         st.info("Run a prediction to view risk insights and probability.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
