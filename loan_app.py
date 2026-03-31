@@ -117,9 +117,9 @@ def load_artifacts():
         st.error(f"Error loading model or supporting files: {e}")
         return {"pipeline": None, "legacy": None}
 
-artifacts = load_artifacts()
-pipeline = artifacts["pipeline"]
-legacy_artifacts = artifacts["legacy"]
+artifacts = load_artifacts() or {"pipeline": None, "legacy": None}
+pipeline = artifacts.get("pipeline")
+legacy_artifacts = artifacts.get("legacy")
 
 # --- 2. Streamlit Page Layout Setup ---
 st.markdown("## Loan Default Risk Analyzer")
