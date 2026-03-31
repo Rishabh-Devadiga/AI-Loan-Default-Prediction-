@@ -1,7 +1,7 @@
 ﻿import streamlit as st
 import pandas as pd
 import joblib
-import xgboost
+import numpy as np
 
 st.set_page_config(
     page_title="Loan Default Risk Analyzer",
@@ -100,20 +100,26 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- 1. Load Trained Model and Supporting Artifacts ---
-# Using joblib to load the model, feature list, and scaler
+# --- 1. Load Trained Pipeline and Supporting Artifacts ---
+# Prefer the full pipeline for consistent training and inference.
 @st.cache_resource
 def load_artifacts():
     try:
+        pipeline = joblib.load("model_pipeline.pkl")
+        return {"pipeline": pipeline, "legacy": None}
+    except FileNotFoundError:
+        # Fallback for backward compatibility if the new pipeline is not present.
         model = joblib.load("xgboost_model.pkl")
         features = joblib.load("model_features.pkl")
         scaler = joblib.load("scaler.pkl")
-        return model, features, scaler
+        return {"pipeline": None, "legacy": (model, features, scaler)}
     except Exception as e:
         st.error(f"Error loading model or supporting files: {e}")
-        return None, None, None
+        return {"pipeline": None, "legacy": None}
 
-model, model_features, scaler = load_artifacts()
+artifacts = load_artifacts()
+pipeline = artifacts["pipeline"]
+legacy_artifacts = artifacts["legacy"]
 
 # --- 2. Streamlit Page Layout Setup ---
 st.markdown("## Loan Default Risk Analyzer")
@@ -225,49 +231,77 @@ with right:
     predict_clicked = st.button("Predict Risk", type="primary", use_container_width=True)
 
     if predict_clicked:
-        if model is None or scaler is None or model_features is None:
+        if pipeline is None and legacy_artifacts is None:
             st.error("Model artifacts are not loaded properly. Cannot proceed.")
         else:
             with st.spinner("Analyzing risk..."):
                 loan_purpose = loan_purpose_map[st.session_state.loan_purpose_label]
                 loan_limit = loan_limit_map[st.session_state.loan_limit_label]
 
-                # Build dictionary of user inputs
+                # Build dictionary of raw user inputs
                 input_dict = {
                     "Credit_Score": st.session_state.Credit_Score,
                     "income": st.session_state.income,
                     "loan_amount": st.session_state.loan_amount,
                     "term": st.session_state.term,
                     "dtir1": st.session_state.dtir1,
+                    "loan_purpose": loan_purpose,
+                    "loan_limit": loan_limit,
                 }
 
-                # Convert categorical inputs to the same one-hot encoded format used during training
-                if loan_purpose in ["p2", "p3", "p4"]:
-                    input_dict[f"loan_purpose_{loan_purpose}"] = 1
-
-                if loan_limit == "ncf":
-                    input_dict["loan_limit_ncf"] = 1
-
-                # Create pandas DataFrame from the gathered user inputs
                 input_df = pd.DataFrame([input_dict])
 
-                # Ensure the DataFrame columns are ordered exactly to match `model_features`
-                input_df = input_df.reindex(columns=model_features, fill_value=0)
+                income = float(st.session_state.income)
+                loan_amount = float(st.session_state.loan_amount)
+                term_value = float(st.session_state.term)
 
-                # numerical columns used during training
-                numeric_cols = ["Credit_Score", "income", "loan_amount", "term", "dtir1"]
+                loan_to_income = loan_amount / income if income > 0 else np.inf
+                emi = loan_amount / term_value if term_value > 0 else np.nan
+                emi_to_income = emi / income if income > 0 else np.nan
 
-                # scale only numeric columns
-                input_df[numeric_cols] = scaler.transform(input_df[numeric_cols])
+                guardrail_triggered = loan_to_income > 5
 
-                prediction = model.predict(input_df)[0]
-                prediction_proba = model.predict_proba(input_df)[0][1]
+                if guardrail_triggered:
+                    prediction = 1
+                    prediction_proba = 1.0
+                elif pipeline is not None:
+                    prediction = pipeline.predict(input_df)[0]
+                    prediction_proba = pipeline.predict_proba(input_df)[0][1]
+                else:
+                    model, model_features, scaler = legacy_artifacts
+
+                    # Convert categorical inputs to the same one-hot encoded format used during training
+                    legacy_dict = {
+                        "Credit_Score": st.session_state.Credit_Score,
+                        "income": st.session_state.income,
+                        "loan_amount": st.session_state.loan_amount,
+                        "term": st.session_state.term,
+                        "dtir1": st.session_state.dtir1,
+                    }
+
+                    if loan_purpose in ["p2", "p3", "p4"]:
+                        legacy_dict[f"loan_purpose_{loan_purpose}"] = 1
+
+                    if loan_limit == "ncf":
+                        legacy_dict["loan_limit_ncf"] = 1
+
+                    legacy_df = pd.DataFrame([legacy_dict])
+                    legacy_df = legacy_df.reindex(columns=model_features, fill_value=0)
+
+                    numeric_cols = ["Credit_Score", "income", "loan_amount", "term", "dtir1"]
+                    legacy_df[numeric_cols] = scaler.transform(legacy_df[numeric_cols])
+
+                    prediction = model.predict(legacy_df)[0]
+                    prediction_proba = model.predict_proba(legacy_df)[0][1]
 
             risk_percentage = prediction_proba * 100
             st.metric(
                 label="Default Probability",
                 value=f"{risk_percentage:.2f}%"
             )
+
+            if guardrail_triggered:
+                st.warning("Loan amount is significantly higher than income.")
 
             if prediction == 1:
                 st.markdown(
@@ -290,5 +324,41 @@ with right:
                 st.warning("Moderate Risk Borrower")
             else:
                 st.error("High Risk Borrower")
+
+            st.write("")
+            metrics_left, metrics_right = st.columns(2)
+            metrics_left.metric("Loan-to-Income Ratio", f"{loan_to_income:.2f}")
+            metrics_right.metric("EMI-to-Income Ratio", f"{emi_to_income:.4f}")
+
+            st.write("")
+            st.markdown("#### 🧾 Risk Explanation")
+            if guardrail_triggered:
+                st.write(
+                    "Rule-based override: loan-to-income ratio exceeds 5, which indicates elevated risk."
+                )
+            elif loan_to_income > 3:
+                st.write("Higher loan-to-income ratio increases default risk.")
+            elif st.session_state.dtir1 > 45:
+                st.write("Debt-to-income ratio is relatively high, which raises risk.")
+            else:
+                st.write("Risk appears within typical ranges for the provided inputs.")
+
+            with st.expander("Debug Info"):
+                st.write(f"Loan-to-Income Ratio: {loan_to_income:.4f}")
+                st.write(f"EMI: {emi:.4f}")
+                st.write(f"EMI-to-Income Ratio: {emi_to_income:.6f}")
+                if pipeline is not None:
+                    engineered_df = pipeline.named_steps["feature_engineering"].transform(input_df)
+                    preprocessed = pipeline.named_steps["preprocess"].transform(engineered_df)
+                    if hasattr(preprocessed, "toarray"):
+                        preprocessed = preprocessed.toarray()
+                    preprocess_step = pipeline.named_steps["preprocess"]
+                    if hasattr(preprocess_step, "get_feature_names_out"):
+                        feature_names = preprocess_step.get_feature_names_out()
+                    else:
+                        feature_names = [f"f{i}" for i in range(preprocessed.shape[1])]
+                    debug_df = pd.DataFrame(preprocessed, columns=feature_names)
+                    st.write("Final Feature Vector:")
+                    st.dataframe(debug_df, use_container_width=True)
     else:
         st.info("Run a prediction to view risk insights and probability.")
