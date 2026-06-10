@@ -2,6 +2,11 @@
 import pandas as pd
 import joblib
 import numpy as np
+from pathlib import Path
+
+
+BASE_DIR = Path(__file__).resolve().parent
+MODELS_DIR = BASE_DIR / "models"
 
 st.set_page_config(
     page_title="Loan Default Risk Analyzer",
@@ -105,13 +110,13 @@ st.markdown(
 @st.cache_resource
 def load_artifacts():
     try:
-        pipeline = joblib.load("model_pipeline.pkl")
+        pipeline = joblib.load(MODELS_DIR / "model_pipeline.pkl")
         return {"pipeline": pipeline, "legacy": None}
     except FileNotFoundError:
         # Fallback for backward compatibility if the new pipeline is not present.
-        model = joblib.load("xgboost_model.pkl")
-        features = joblib.load("model_features.pkl")
-        scaler = joblib.load("scaler.pkl")
+        model = joblib.load(MODELS_DIR / "xgboost_model.pkl")
+        features = joblib.load(MODELS_DIR / "model_features.pkl")
+        scaler = joblib.load(MODELS_DIR / "scaler.pkl")
         return {"pipeline": None, "legacy": (model, features, scaler)}
     except Exception as e:
         st.error(f"Error loading model or supporting files: {e}")

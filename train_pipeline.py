@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import joblib
 import pandas as pd
+from pathlib import Path
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import classification_report, roc_auc_score
@@ -13,8 +14,9 @@ from xgboost import XGBClassifier
 from feature_engineering import LoanFeatureEngineer
 
 
-DATA_PATH = "Loan_Default.csv"
-MODEL_PATH = "model_pipeline.pkl"
+BASE_DIR = Path(__file__).resolve().parent
+DATA_PATH = BASE_DIR / "data" / "Loan_Default.csv"
+MODEL_PATH = BASE_DIR / "models" / "model_pipeline.pkl"
 TARGET_COL = "Status"
 
 

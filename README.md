@@ -122,12 +122,47 @@ Users can enter borrower information and receive:
 
 ---
 
+## Project Structure
+
+```text
+.
+├── data/                 # Dataset files
+│   └── Loan_Default.csv
+├── models/               # Trained model artifacts and preprocessing files
+│   ├── model_pipeline.pkl
+│   ├── xgboost_model.pkl
+│   ├── model_features.pkl
+│   └── scaler.pkl
+├── notebooks/            # EDA and model experimentation notebooks
+│   ├── EDA_loan_dataset.ipynb
+│   └── model_train.ipynb
+├── feature_engineering.py
+├── loan_app.py           # Streamlit application
+├── train_pipeline.py     # Model training pipeline
+├── requirements.txt
+└── README.md
+```
+
+---
+
 ## Running the Application
 
 ### Install dependencies
 
 ```bash
-pip install streamlit pandas scikit-learn xgboost joblib
+pip install -r requirements.txt
+```
+
+### Start Streamlit
+
+```bash
+streamlit run loan_app.py
+```
+
+### Retrain the model
+
+```bash
+python train_pipeline.py
 ```
 
 ## Technologies Used
